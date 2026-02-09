@@ -1,6 +1,6 @@
 import { useDispatch, useSelector, connect } from 'react-redux';
 import {
-  geofencesActions, groupsActions, driversActions, maintenancesActions, calendarsActions,
+  geofencesActions, groupsActions, driversActions, maintenancesActions, calendarsActions,schedulesActions,
 } from './store';
 import { useEffectAsync } from './reactHelper';
 import fetchOrThrow from './common/util/fetchOrThrow';
@@ -41,6 +41,13 @@ const CachingController = () => {
     if (authenticated) {
       const response = await fetchOrThrow('/api/calendars');
       dispatch(calendarsActions.refresh(await response.json()));
+    }
+  }, [authenticated]);
+
+  useEffectAsync(async () => {
+    if (authenticated) {
+      const response = await fetchOrThrow('/api/schedules/page');
+      dispatch(schedulesActions.refresh(await response.json()));
     }
   }, [authenticated]);
 

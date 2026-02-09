@@ -25,6 +25,7 @@ import {
 import useFeatures from '../../common/util/useFeatures';
 import MenuItem from '../../common/components/MenuItem';
 
+import ScheduleIcon from '@mui/icons-material/Schedule';
 const SettingsMenu = () => {
   const t = useTranslation();
   const location = useLocation();
@@ -97,6 +98,12 @@ const SettingsMenu = () => {
                 selected={location.pathname.startsWith('/settings/calendar')}
               />
             )}
+            <MenuItem
+             title={t('sharedSchedules')}
+              link="/settings/schedules"
+              icon={<ScheduleIcon />}
+              selected={location.pathname.startsWith('/settings/schedule')}
+            />
             {!features.disableComputedAttributes && (
               <MenuItem
                 title={t('sharedComputedAttributes')}
