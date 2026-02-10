@@ -28,6 +28,7 @@ import CalendarsPage from './settings/CalendarsPage';
 import CalendarPage from './settings/CalendarPage';
 import SchedulesPage from './settings/SchedulesPage';
 import SchedulePage from './settings/SchedulePage';
+import ScheduleConnectionsPage from './settings/ScheduleConnectionsPage';
 import ComputedAttributesPage from './settings/ComputedAttributesPage';
 import ComputedAttributePage from './settings/ComputedAttributePage';
 import MaintenancesPage from './settings/MaintenancesPage';
@@ -136,6 +137,7 @@ const Navigation = () => {
           <Route path="schedules" element={<SchedulesPage />} />
           <Route path="schedule/:id" element={<SchedulePage />} />
           <Route path="schedule" element={<SchedulePage />} />
+           <Route path="schedule/:id/connections" element={<ScheduleConnectionsPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="commands" element={<CommandsPage />} />
           <Route path="command/:id" element={<CommandPage />} />

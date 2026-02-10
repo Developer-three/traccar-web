@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import {
   Table,
   TableRow,
@@ -7,6 +9,7 @@ import {
   TableBody,
   TablePagination,
 } from '@mui/material';
+import LinkIcon from '@mui/icons-material/Link';
 import { useEffectAsync } from '../reactHelper';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import PageLayout from '../common/components/PageLayout';
@@ -21,7 +24,10 @@ import dayjs from 'dayjs';
 
 const SchedulesPage = () => {
   const { classes } = useSettingsStyles();
+  const navigate = useNavigate();
   const t = useTranslation();
+  const devices = useSelector((state) => state.devices.items);
+  const geofences = useSelector((state) => state.geofences.items);
 
   const [timestamp, setTimestamp] = useState(Date.now());
   const [items, setItems] = useState([]);
@@ -40,7 +46,7 @@ const SchedulesPage = () => {
         `/api/schedules/page?page=${page}&size=${rowsPerPage}`
       );
       const data = await response.json();
-      console.log("schedules", data);
+
       const list = Array.isArray(data) ? data : data.content || [];
 
       const normalized = list.map((item) => ({
@@ -59,6 +65,13 @@ const SchedulesPage = () => {
       setLoading(false);
     }
   }, [timestamp, page, rowsPerPage]);
+
+  const actionConnections = {
+    key: 'connections',
+    title: t('sharedConnections'),
+    icon: <LinkIcon fontSize="small" />,
+    handler: (scheduleId) => navigate(`/settings/schedule/${scheduleId}/connections`),
+  };
 
   return (
     <PageLayout
@@ -109,6 +122,7 @@ const SchedulesPage = () => {
 
                   <TableCell>{item.recurrence || '-'}</TableCell>
 
+
                   <TableCell>
                     {item.reversed ? 'Yes' : 'No'}
                   </TableCell>
@@ -126,12 +140,14 @@ const SchedulesPage = () => {
                       editPath="/settings/schedule"
                       endpoint="schedules"
                       setTimestamp={setTimestamp}
+                      customActions={[actionConnections]}
                     />
                   </TableCell>
                 </TableRow>
               ))
           ) : (
             <TableShimmer columns={8} endAction />
+           
           )}
         </TableBody>
       </Table>

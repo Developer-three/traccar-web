@@ -1,7 +1,7 @@
-import dayjs from 'dayjs';
-import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import TextField from '@mui/material/TextField';
+import dayjs from "dayjs";
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import TextField from "@mui/material/TextField";
 import {
   Accordion,
   AccordionSummary,
@@ -13,16 +13,16 @@ import {
   MenuItem,
   FormControlLabel,
   Checkbox,
-} from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import EditItemView from './components/EditItemView';
-import { useTranslation } from '../common/components/LocalizationProvider';
-import SettingsMenu from './components/SettingsMenu';
-import { prefixString } from '../common/util/stringUtils';
-import { schedulesActions } from '../store';
-import { useCatch } from '../reactHelper';
-import useSettingsStyles from './common/useSettingsStyles';
-import fetchOrThrow from '../common/util/fetchOrThrow';
+} from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import EditItemView from "./components/EditItemView";
+import { useTranslation } from "../common/components/LocalizationProvider";
+import SettingsMenu from "./components/SettingsMenu";
+import { prefixString } from "../common/util/stringUtils";
+import { schedulesActions } from "../store";
+import { useCatch } from "../reactHelper";
+import useSettingsStyles from "./common/useSettingsStyles";
+import fetchOrThrow from "../common/util/fetchOrThrow";
 
 const SchedulePage = () => {
   const { classes } = useSettingsStyles();
@@ -30,47 +30,73 @@ const SchedulePage = () => {
   const t = useTranslation();
   const gmtOffsetMinutes = 330;
 
+  const {id}=useParams();
+
   const [item, setItem] = useState();
   const geofences = useSelector((state) => state.geofences.items);
+  const devices=useSelector((state) => state.devices.items);
+  const[selectedDevices, setSelectedDevices] = useState([]);
 
-  const [uiDate, setUiDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [uiDate, setUiDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [uiStartTime, setUiStartTime] = useState("00:00");
-  const [uiEndTime, setUiEndTime] = useState('00:00');
+  const [uiEndTime, setUiEndTime] = useState("00:00");
 
-  const onItemSaved = useCatch(async () => {
-    const response = await fetchOrThrow('/api/schedules');
+   const onItemSaved = useCatch(async (savedItem) => {
+    const requests = [];
+
+    selectedDevices.forEach((device) => {
+      requests.push(fetchOrThrow('/api/permissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduleId: savedItem.id, deviceId: device.id }),
+      }));
+
+      if (savedItem.geofenceId) {
+        requests.push(fetchOrThrow('/api/permissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ geofenceId: savedItem.geofenceId, deviceId: device.id }),
+        }));
+      }
+    });
+
+    await Promise.all(requests);
+    const response=await fetchOrThrow('/api/schedules');
     dispatch(schedulesActions.refresh(await response.json()));
   });
 
+    useEffectAsync(async () => {
+    if (id) {
+      const response = await fetchOrThrow(`/api/devices?scheduleId=${id}`);
+      setSelectedDevices(await response.json());
+    }
+  }, [id]);
+
+
+
   const validate = () =>
-    item &&
-    item.scheduleName &&
-    item.startTime &&
-    item.geofenceId;
+    item && item.scheduleName && item.startTime && item.geofenceId&&(id||selectedDevices.length>0);
 
   const buildUtcIso = (date, time) =>
-    dayjs(`${date}T${time}`)
-     .format('YYYY-MM-DDTHH:mm:ss+05:30');
+    dayjs(`${date}T${time}`).format("YYYY-MM-DDTHH:mm:ss+05:30");
 
   const calculateDuration = (startIso, endIso) =>
-    dayjs(endIso).diff(dayjs(startIso), 'second');
+    dayjs(endIso).diff(dayjs(startIso), "second");
 
-  const todayDate = dayjs().format('YYYY-MM-DD');
+  const todayDate = dayjs().format("YYYY-MM-DD");
 
   const recomputeTime = (date, start, end) => {
-  const baseDate =
-    item.recurrence === 'ONCE' ? date : todayDate;
+    const baseDate = item.recurrence === "ONCE" ? date : todayDate;
 
-  const startIso = buildUtcIso(baseDate, start);
-  const endIso = buildUtcIso(baseDate, end);
+    const startIso = buildUtcIso(baseDate, start);
+    const endIso = buildUtcIso(baseDate, end);
 
-  setItem({
-    ...item,
-    startTime: startIso,
-    duration: calculateDuration(startIso, endIso),
-  });
-};
-
+    setItem({
+      ...item,
+      startTime: startIso,
+      duration: calculateDuration(startIso, endIso),
+    });
+  };
 
   return (
     <EditItemView
@@ -78,32 +104,30 @@ const SchedulePage = () => {
       item={item}
       setItem={setItem}
       defaultItem={{
-        scheduleName: '',
-        description: '',
+        scheduleName: "",
+        description: "",
         startTime: null,
         duration: 0,
-        recurrence: 'DAILY',
+        recurrence: "DAILY",
         reversed: false,
         waitTime: 0,
       }}
       validate={validate}
       onItemSaved={onItemSaved}
       menu={<SettingsMenu />}
-      breadcrumbs={['settingsTitle', 'sharedSchedule']}
+      breadcrumbs={["settingsTitle", "sharedSchedule"]}
     >
       {item && (
         <>
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="subtitle1">
-                {t('sharedRequired')}
-              </Typography>
+              <Typography variant="subtitle1">{t("sharedRequired")}</Typography>
             </AccordionSummary>
 
             <AccordionDetails className={classes.details}>
               {/* NAME */}
               <TextField
-                label={t('sharedName')}
+                label={t("sharedName")}
                 value={item.scheduleName}
                 onChange={(e) =>
                   setItem({ ...item, scheduleName: e.target.value })
@@ -112,7 +136,7 @@ const SchedulePage = () => {
 
               {/* DESCRIPTION */}
               <TextField
-                label={t('sharedDescription')}
+                label={t("sharedDescription")}
                 value={item.description}
                 onChange={(e) =>
                   setItem({ ...item, description: e.target.value })
@@ -120,48 +144,47 @@ const SchedulePage = () => {
               />
 
               {/* DATE – ONLY ONCE */}
-              {item.recurrence === 'ONCE' && (
+              {item.recurrence === "ONCE" && (
                 <TextField
                   type="date"
                   label="Date"
                   value={uiDate}
-                    onChange={(e) => {
+                  onChange={(e) => {
                     const value = e.target.value;
                     setUiDate(value);
                     recomputeTime(value, uiStartTime, uiEndTime);
-                    }}
-                 />
+                  }}
+                />
               )}
 
               {/* START TIME */}
               <TextField
-  type="time"
-  label="Start Time"
-  value={uiStartTime}
-  onChange={(e) => {
-    const value = e.target.value;
-    setUiStartTime(value);
-    recomputeTime(uiDate, value, uiEndTime);
-  }}
-/>
+                type="time"
+                label="Start Time"
+                value={uiStartTime}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setUiStartTime(value);
+                  recomputeTime(uiDate, value, uiEndTime);
+                }}
+              />
 
-<TextField
-  type="time"
-  label="End Time"
-  value={uiEndTime}
-  onChange={(e) => {
-    const value = e.target.value;
-    setUiEndTime(value);
-    recomputeTime(uiDate, uiStartTime, value);
-  }}
-/>
-
+              <TextField
+                type="time"
+                label="End Time"
+                value={uiEndTime}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setUiEndTime(value);
+                  recomputeTime(uiDate, uiStartTime, value);
+                }}
+              />
 
               {/* ROUTE */}
               <FormControl>
                 <InputLabel>Route</InputLabel>
                 <Select
-                  value={item.geofenceId || ''}
+                  value={item.geofenceId || ""}
                   onChange={(e) =>
                     setItem({ ...item, geofenceId: e.target.value })
                   }
@@ -176,16 +199,16 @@ const SchedulePage = () => {
 
               {/* RECURRENCE */}
               <FormControl>
-                <InputLabel>{t('calendarRecurrence')}</InputLabel>
+                <InputLabel>{t("calendarRecurrence")}</InputLabel>
                 <Select
                   value={item.recurrence}
                   onChange={(e) =>
                     setItem({ ...item, recurrence: e.target.value })
                   }
                 >
-                  {['ONCE', 'DAILY'].map((it) => (
+                  {["ONCE", "DAILY"].map((it) => (
                     <MenuItem key={it} value={it}>
-                      {t(prefixString('calendar', it.toLowerCase()))}
+                      {t(prefixString("calendar", it.toLowerCase()))}
                     </MenuItem>
                   ))}
                 </Select>
@@ -207,7 +230,7 @@ const SchedulePage = () => {
               {/* WAIT TIME (minutes → seconds) */}
               {item.reversed && (
                 <TextField
-                  label={t('sharedWaitTime')}
+                  label={t("sharedWaitTime")}
                   type="number"
                   value={item.waitTime / 60}
                   onChange={(e) =>

@@ -23,7 +23,7 @@ import usePersistedState from '../common/util/usePersistedState';
 import fetchOrThrow from '../common/util/fetchOrThrow';
 import AddressValue from '../common/components/AddressValue';
 import exportExcel from '../common/util/exportExcel';
-
+import { useMemo } from 'react';
 const DevicesPage = () => {
   const { classes } = useSettingsStyles();
   const theme = useTheme();
@@ -43,17 +43,35 @@ const DevicesPage = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showAll, setShowAll] = usePersistedState('showAllDevices', false);
   const [loading, setLoading] = useState(false);
+  const [maintenances, setMaintenances] = useState([]);
 
   useEffectAsync(async () => {
     setLoading(true);
     try {
       const query = new URLSearchParams({ all: showAll });
-      const response = await fetchOrThrow(`/api/devices?${query.toString()}`);
-      setItems(await response.json());
+      // const response = await fetchOrThrow(`/api/devices?${query.toString()}`);
+      // setItems(await response.json());
+      const [deviceResponse,maintenanceRespnse]=await Promise.all([
+        fetchOrThrow(`/api/devices?${query.toString()}`),
+        fetchOrThrow(`/api/maintenance?${showAll?'?all=ture':''}`,)
+      ]);
+      setItems(await deviceResponse.json());
+      setMaintenances(await maintenanceRespnse.json());
     } finally {
       setLoading(false);
     }
   }, [timestamp, showAll]);
+
+  const maintenanceByDevices = useMemo(() => {
+    const result = {};
+    maintenances.forEach((maintenance) => {
+      if (!result[maintenance.deviceId]) {
+        result[maintenance.deviceId] = [];
+      }
+      result[maintenance.deviceId].push(maintenance);
+    });
+    return result;
+  }, [maintenances]);
 
   const handleExport = async () => {
     const data = items.filter(filterByKeyword(searchKeyword)).map((item) => ({
@@ -67,6 +85,7 @@ const DevicesPage = () => {
       [t('deviceStatus')]: formatStatus(item.status, t),
       [t('deviceLastUpdate')]: formatTime(item.lastUpdate, 'minutes'),
       [t('positionAddress')]: positions[item.id] ? formatAddress(positions[item.id], coordinateFormat) : '',
+      [t('sharedSchedules')]: (maintenanceByDevices[item.id]||[]).map((maintenance) => maintenance.name).join(', '),
     }));
     const sheets = new Map();
     sheets.set(t('deviceTitle'), data);
@@ -94,6 +113,7 @@ const DevicesPage = () => {
             <TableCell>{t('deviceContact')}</TableCell>
             <TableCell>{t('userExpirationTime')}</TableCell>
             <TableCell>{t('positionAddress')}</TableCell>
+            <TableCell>{t('sharedDevices')}</TableCell>
             {manager && <TableCell>{t('settingsUsers')}</TableCell>}
             <TableCell className={classes.columnAction} />
           </TableRow>
@@ -117,6 +137,7 @@ const DevicesPage = () => {
                   />
                 )}
               </TableCell>
+              <TableCell>{(maintenanceByDevices[item.id]||[]).map((maintenance) => maintenance.name).join(', ')}</TableCell>
               {manager && <TableCell><DeviceUsersValue deviceId={item.id} /></TableCell>}
               <TableCell className={classes.columnAction} padding="none">
                 <CollectionActions
@@ -129,14 +150,14 @@ const DevicesPage = () => {
                 />
               </TableCell>
             </TableRow>
-          )) : (<TableShimmer columns={manager ? 9 : 8} endAction />)}
+          )) : (<TableShimmer columns={manager ? 10 : 9} endAction />)}
         </TableBody>
         <TableFooter>
           <TableRow>
             <TableCell>
               <Button onClick={handleExport} variant="text">{t('reportExport')}</Button>
             </TableCell>
-            <TableCell colSpan={manager ? 9 : 8} align="right">
+            <TableCell colSpan={manager ? 10 : 9} align="right">
               <FormControlLabel
                 control={(
                   <Switch
