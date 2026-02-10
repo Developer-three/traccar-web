@@ -6,9 +6,10 @@ import {
   AccordionDetails,
   Typography,
   Container,
+  Button,
+  Stack,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import LinkField from '../common/components/LinkField';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import SettingsMenu from './components/SettingsMenu';
 import PageLayout from '../common/components/PageLayout';
@@ -16,93 +17,150 @@ import useSettingsStyles from './common/useSettingsStyles';
 import fetchOrThrow from '../common/util/fetchOrThrow';
 import { useEffectAsync } from '../reactHelper';
 
+/* =========================
+   API CALLS
+========================= */
+
+const linkScheduleToDevice = async (scheduleId, deviceId) => {
+  return fetchOrThrow('/api/permissions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scheduleId, deviceId }),
+  });
+};
+
+const linkDeviceToGeofence = async (deviceId, geofenceId) => {
+  return fetchOrThrow('/api/permissions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deviceId, geofenceId }),
+  });
+};
+
+const unlinkScheduleFromDevice = async (scheduleId, deviceId) => {
+  return fetchOrThrow('/api/permissions', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scheduleId, deviceId }),
+  });
+};
+
 const ScheduleConnectionsPage = () => {
   const { classes } = useSettingsStyles();
   const t = useTranslation();
+  const { id: scheduleId } = useParams();
 
-  const { id } = useParams();
+  const [devices, setDevices] = useState([]);
+  const [linkedDeviceIds, setLinkedDeviceIds] = useState(new Set());
+  const [geofenceId, setGeofenceId] = useState(null);
+  const [loadingId, setLoadingId] = useState(null);
 
-  const [linkedDevices, setLinkedDevices] = useState([]);
-  const [linkedGeofences, setLinkedGeofences] = useState([]);
-  const [syncedPairs, setSyncedPairs] = useState(new Set());
-
+  /* =========================
+     FETCH DEVICES + LINKED + SCHEDULE
+  ========================= */
   useEffectAsync(async () => {
-    const [devicesResponse, geofencesResponse] = await Promise.all([
-      fetchOrThrow(`/api/devices?scheduleId=${id}`),
-      fetchOrThrow(`/api/geofences?scheduleId=${id}`),
+    const [devicesRes, linkedRes, scheduleRes] = await Promise.all([
+      fetchOrThrow('/api/devices'),
+      fetchOrThrow(`/api/devices?scheduleId=${scheduleId}`),
+      fetchOrThrow(`/api/schedules/${scheduleId}`),
     ]);
 
-    setLinkedDevices(await devicesResponse.json());
-    setLinkedGeofences(await geofencesResponse.json());
-  }, [id]);
+    const devicesData = await devicesRes.json();
+    const linkedDevices = await linkedRes.json();
+    const scheduleData = await scheduleRes.json();
 
-  useEffectAsync(async () => {
-    if (!linkedDevices.length || !linkedGeofences.length) {
-      return;
-    }
+    setDevices(devicesData);
+    setGeofenceId(scheduleData.geofenceId);
 
-    const tasks = [];
-    const newPairs = [];
+    // linked device ids
+    setLinkedDeviceIds(
+      new Set(linkedDevices.map((d) => d.id))
+    );
+  }, [scheduleId]);
 
-    linkedDevices.forEach((device) => {
-      linkedGeofences.forEach((geofence) => {
-        const pairKey = `${device.id}:${geofence.id}`;
-        if (!syncedPairs.has(pairKey)) {
-          tasks.push(fetchOrThrow('/api/permissions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              deviceId: device.id,
-              geofenceId: geofence.id,
-            }),
-          }));
-          newPairs.push(pairKey);
-        }
+  /* =========================
+     LINK
+  ========================= */
+  const handleLink = async (deviceId) => {
+    if (!geofenceId) return;
+
+    try {
+      setLoadingId(deviceId);
+
+      await linkScheduleToDevice(scheduleId, deviceId);
+      await linkDeviceToGeofence(deviceId, geofenceId);
+
+      setLinkedDeviceIds((prev) => {
+        const next = new Set(prev);
+        next.add(deviceId);
+        return next;
       });
-    });
-
-    if (!tasks.length) {
-      return;
+    } finally {
+      setLoadingId(null);
     }
+  };
 
-    await Promise.all(tasks);
+  /* =========================
+     UNLINK
+  ========================= */
+  const handleUnlink = async (deviceId) => {
+    try {
+      setLoadingId(deviceId);
 
-    setSyncedPairs((previous) => {
-      const next = new Set(previous);
-      newPairs.forEach((pairKey) => next.add(pairKey));
-      return next;
-    });
-  }, [linkedDevices, linkedGeofences, syncedPairs]);
+      await unlinkScheduleFromDevice(scheduleId, deviceId);
 
+      setLinkedDeviceIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deviceId);
+        return next;
+      });
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  /* =========================
+     UI
+  ========================= */
   return (
     <PageLayout
       menu={<SettingsMenu />}
-      breadcrumbs={['settingsTitle', 'sharedSchedule', 'sharedConnections']}
+      breadcrumbs={[
+        'settingsTitle',
+        'sharedSchedule',
+        'sharedConnections',
+      ]}
     >
-      <Container maxWidth="xs" className={classes.container}>
+      <Container maxWidth="sm" className={classes.container}>
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography variant="subtitle1">
               {t('sharedConnections')}
             </Typography>
           </AccordionSummary>
+
           <AccordionDetails className={classes.details}>
-            <LinkField
-              endpointAll="/api/devices"
-              endpointLinked={`/api/devices?scheduleId=${id}`}
-              baseId={id}
-              keyBase="scheduleId"
-              keyLink="deviceId"
-              label={t('sharedDevice')}
-            />
-            <LinkField
-              endpointAll="/api/geofences"
-              endpointLinked={`/api/geofences?scheduleId=${id}`}
-              baseId={id}
-              keyBase="scheduleId"
-              keyLink="geofenceId"
-              label={t('sharedGeofences')}
-            />
+            <Stack spacing={2}>
+              {devices.map((device) => {
+                const isLinked = linkedDeviceIds.has(device.id);
+
+                return (
+                  <Button
+                    key={device.id}
+                    variant={isLinked ? 'contained' : 'outlined'}
+                    color={isLinked ? 'success' : 'primary'}
+                    disabled={loadingId === device.id}
+                    onClick={() =>
+                      isLinked
+                        ? handleUnlink(device.id)
+                        : handleLink(device.id)
+                    }
+                  >
+                    {device.name} — {isLinked ? 'Unlink' : 'Link'}
+                  </Button>
+                );
+              })}
+            </Stack>
           </AccordionDetails>
         </Accordion>
       </Container>
