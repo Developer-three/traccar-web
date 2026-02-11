@@ -29,6 +29,14 @@ const linkScheduleToDevice = async (scheduleId, deviceId) => {
   });
 };
 
+const linkDeviceToSchedule = async (deviceId, scheduleId) => {
+  return fetchOrThrow('/api/permissions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deviceId, scheduleId }),
+  });
+};
+
 const linkDeviceToGeofence = async (deviceId, geofenceId) => {
   return fetchOrThrow('/api/permissions', {
     method: 'POST',
@@ -78,9 +86,6 @@ const ScheduleConnectionsPage = () => {
     );
   }, [scheduleId]);
 
-  /* =========================
-     LINK
-  ========================= */
   const handleLink = async (deviceId) => {
     if (!geofenceId) return;
 
@@ -89,6 +94,7 @@ const ScheduleConnectionsPage = () => {
 
       await linkScheduleToDevice(scheduleId, deviceId);
       await linkDeviceToGeofence(deviceId, geofenceId);
+    //   await linkDeviceToSchedule(deviceId, scheduleId);
 
       setLinkedDeviceIds((prev) => {
         const next = new Set(prev);
@@ -100,9 +106,7 @@ const ScheduleConnectionsPage = () => {
     }
   };
 
-  /* =========================
-     UNLINK
-  ========================= */
+
   const handleUnlink = async (deviceId) => {
     try {
       setLoadingId(deviceId);

@@ -36,14 +36,14 @@ const DeviceConnectionsPage = () => {
             </Typography>
           </AccordionSummary>
           <AccordionDetails className={classes.details}>
-            <LinkField
+            {/* <LinkField
               endpointAll="/api/geofences"
               endpointLinked={`/api/geofences?deviceId=${id}`}
               baseId={id}
               keyBase="deviceId"
               keyLink="geofenceId"
               label={t('sharedGeofences')}
-            />
+            /> */}
             <LinkField
               endpointAll="/api/notifications"
               endpointLinked={`/api/notifications?deviceId=${id}`}
@@ -52,6 +52,15 @@ const DeviceConnectionsPage = () => {
               keyLink="notificationId"
               titleGetter={(it) => formatNotificationTitle(t, it)}
               label={t('sharedNotifications')}
+            />
+            <LinkField
+              endpointAll="/api/schedules"
+              endpointLinked={`/api/schedules?deviceId=${id}`}
+              baseId={id}
+              keyBase="deviceId"
+              keyLink="scheduleId"
+              titleGetter={(it) => it.scheduleName || it.name}
+              label={t('sharedSchedules')}
             />
             {!features.disableDrivers && (
               <LinkField
