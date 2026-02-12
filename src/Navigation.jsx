@@ -40,7 +40,9 @@ import LoginPage from './login/LoginPage';
 import RegisterPage from './login/RegisterPage';
 import ResetPasswordPage from './login/ResetPasswordPage';
 import GeofencesPage from './other/GeofencesPage';
+import StopsPage from './other/StopsPage';
 import GeofencePage from './settings/GeofencePage';
+import StopPage from './settings/StopPage';
 import { useEffectAsync } from './reactHelper';
 import { devicesActions } from './store';
 import EventPage from './other/EventPage';
@@ -127,6 +129,7 @@ const Navigation = () => {
         <Route path="event/:id" element={<EventPage />} />
         <Route path="replay" element={<ReplayPage />} />
         <Route path="geofences" element={<GeofencesPage />} />
+        <Route path="stops" element={<StopsPage />} />
         <Route path="emulator" element={<EmulatorPage />} />
 
         <Route path="settings">
@@ -156,6 +159,8 @@ const Navigation = () => {
           <Route path="driver" element={<DriverPage />} />
           <Route path="geofence/:id" element={<GeofencePage />} />
           <Route path="geofence" element={<GeofencePage />} />
+          <Route path="stop/:id" element={<StopPage />} />
+          <Route path="stop" element={<StopPage />} />
           <Route path="groups" element={<GroupsPage />} />
           <Route path="group/:id/connections" element={<GroupConnectionsPage />} />
           <Route path="group/:id/command" element={<CommandGroupPage />} />

@@ -26,6 +26,7 @@ import useFeatures from '../../common/util/useFeatures';
 import MenuItem from '../../common/components/MenuItem';
 
 import ScheduleIcon from '@mui/icons-material/Schedule';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 const SettingsMenu = () => {
   const t = useTranslation();
   const location = useLocation();
@@ -73,6 +74,12 @@ const SettingsMenu = () => {
               link="/geofences"
               icon={<DrawIcon />}
               selected={location.pathname.startsWith('/settings/geofence')}
+            />
+            <MenuItem
+              title={t('sharedStops')}
+              link="/stops"
+              icon={<LocationOnIcon />}
+              selected={location.pathname.startsWith('/settings/stop') || location.pathname === '/stops'}
             />
             {!features.disableGroups && (
               <MenuItem
