@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
   Table,
@@ -26,9 +25,6 @@ const SchedulesPage = () => {
   const { classes } = useSettingsStyles();
   const navigate = useNavigate();
   const t = useTranslation();
-  const devices = useSelector((state) => state.devices.items);
-  const geofences = useSelector((state) => state.geofences.items);
-
   const [timestamp, setTimestamp] = useState(Date.now());
   const [items, setItems] = useState([]);
   const [searchKeyword, setSearchKeyword] = useState('');

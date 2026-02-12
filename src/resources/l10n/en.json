@@ -511,8 +511,8 @@
     "eventMedia": "Media",
     "eventStartDelayed": "Start delayed",
     "eventEndDelayed": "End delayed",
-    "eventRouteStart":"Route started",
-    "eventRouteEnd":"Route ended",
+    "eventRouteStart": "Route started",
+    "eventRouteEnd": "Route ended",
     "eventsScrollToLast": "Scroll to Last",
     "eventsSoundEvents": "Sound Events",
     "eventsSoundAlarms": "Sound Alarms",
@@ -639,5 +639,10 @@
     "categoryVan": "Van",
     "categoryScooter": "Scooter",
     "maintenanceStart": "Start",
-    "maintenancePeriod": "Period"
+    "maintenancePeriod": "Period",
+    "sharedStop": "Stop",
+    "sharedStops": "Stops",
+    "sharedRoute": "Route",
+    "sharedAll": "All",
+    "sharedDate": "Date"
 }
