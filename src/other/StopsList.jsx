@@ -3,14 +3,15 @@ import {
   ListItemButton,
   ListItemText,
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import CollectionActions from '../settings/components/CollectionActions';
+import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
 
 const StopsList = ({
   routeId,
   stops,
   onStopSelected,
+
   refreshStops,
 }) => {
   const t = useTranslation();
@@ -35,14 +36,14 @@ const StopsList = ({
             <div onClick={(event) => event.stopPropagation()} onMouseDown={(event) => event.stopPropagation()}>
               <CollectionActions
                 itemId={stop.id}
+                editPath="/settings/stops"
                 endpoint="stops"
                 setTimestamp={() => refreshStops()}
                 customActions={[
                   {
                     key: 'editOnMap',
                     title: t('sharedEdit'),
-                    icon: <EditIcon fontSize="small" />,
-                    handler: () => onStopSelected(stop.id),
+                    handler: () => onStopSelected(stop),
                   },
                 ]}
               />

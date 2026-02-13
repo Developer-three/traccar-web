@@ -33,11 +33,12 @@ const EditItemView = ({
     if (id) {
       url += `/${id}`;
     }
-
+    const cleanItem={...item};
+    delete cleanItem.attributes;
     const response = await fetchOrThrow(url, {
       method: !id ? 'POST' : 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item),
+      body: JSON.stringify(cleanItem),
     });
 
     if (onItemSaved) {

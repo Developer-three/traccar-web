@@ -79,7 +79,7 @@ const SettingsMenu = () => {
               title={t('reportStops')}
               link="/stops"
               icon={<PinDropIcon />}
-              selected={location.pathname.startsWith('/stops')}
+              selected={location.pathname.startsWith('/settings/stops')}
             />
 
             {!features.disableGroups && (

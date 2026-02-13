@@ -513,6 +513,8 @@
     "eventEndDelayed": "End delayed",
     "eventRouteStart":"Route started",
     "eventRouteEnd":"Route ended",
+    "eventStopEnter":"Stop entered",
+    "eventStopExit":"Stop exited",
     "eventsScrollToLast": "Scroll to Last",
     "eventsSoundEvents": "Sound Events",
     "eventsSoundAlarms": "Sound Alarms",

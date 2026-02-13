@@ -66,11 +66,6 @@ const SchedulePage = () => {
     const response = await fetchOrThrow('/api/stops');
     const allStops = await response.json();
     const mappedStops = allStops
-      .map((stop) => ({
-        ...stop,
-        routeGeofenceId: stop.routeGeofenceId ?? stop.attributes?.routeGeofenceId,
-        geofenceIds: stop.geofenceIds ?? stop.attributes?.geofenceIds,
-      }))
       .filter((stop) => {
         const directMatch = Number(stop.routeGeofenceId) === Number(routeId);
         const linkedMatch = Array.isArray(stop.geofenceIds)
@@ -279,8 +274,9 @@ const SchedulePage = () => {
 
               {/* RECURRENCE */}
               <FormControl>
-                <InputLabel>{t('calendarRecurrence')}</InputLabel>
+                <InputLabel>Recurrence</InputLabel>
                 <Select
+                label="Recurrence"
                   value={item.recurrence}
                   onChange={(e) =>
                     setItem({ ...item, recurrence: e.target.value })

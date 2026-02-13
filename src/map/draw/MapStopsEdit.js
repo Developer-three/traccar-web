@@ -306,7 +306,11 @@ const MapStopsEdit = ({ selectedRouteId, selectedStopId, stops, refreshStops }) 
 
   useEffect(() => {
     if (selectedStopId) {
-      draw.changeMode('simple_select', { featureIds: [String(selectedStopId)] });
+        const featureId=String(selectedStopId);
+        if(draw.get(featureId)){
+           draw.changeMode('simple_select', { featureIds: [featureId] });
+        draw.changeMode('direct_select', { featureId }); 
+        }
     }
   }, [draw, selectedStopId]);
 

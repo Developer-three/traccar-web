@@ -101,6 +101,40 @@ const StopsPage = () => {
     refreshStops();
   }, [refreshGeofences, refreshStops]);
 
+   const renameStop = useCatchCallback(async (stop) => {
+    const value = window.prompt(`${t('sharedName')}:`, stop.name ?? '');
+    if (value === null) {
+      return;
+    }
+
+    const name = value.trim();
+    if (!name || name === stop.name) {
+      return;
+    }
+
+    try {
+      await fetchOrThrow(`/api/stops/${stop.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: stop.id,
+          name,
+          description: stop.description ?? null,
+          area: stop.area,
+          routeGeofenceId: stop.routeGeofenceId ?? stop.attributes?.routeGeofenceId,
+          attributes: {
+            ...stop.attributes,
+            isStop: true,
+            geofenceIds: stop.geofenceIds ?? stop.attributes?.geofenceIds ?? [],
+          },
+        }),
+      });
+      refreshStops();
+    } catch (error) {
+      dispatch(errorsActions.push(error.message));
+    }
+  }, [dispatch, refreshStops, t]);
+
   return (
     <div className={classes.root}>
       <div className={classes.content}>
@@ -142,6 +176,7 @@ const StopsPage = () => {
             <MapStopsEdit
               selectedRouteId={selectedRouteId}
               selectedStopId={selectedStopId}
+              onStopRenamed={renameStop}
               stops={stops}
               refreshStops={refreshStops}
             />
