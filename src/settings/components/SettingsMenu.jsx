@@ -26,6 +26,7 @@ import useFeatures from '../../common/util/useFeatures';
 import MenuItem from '../../common/components/MenuItem';
 
 import ScheduleIcon from '@mui/icons-material/Schedule';
+import PinDropIcon from '@mui/icons-material/Report';
 const SettingsMenu = () => {
   const t = useTranslation();
   const location = useLocation();
@@ -74,6 +75,13 @@ const SettingsMenu = () => {
               icon={<DrawIcon />}
               selected={location.pathname.startsWith('/settings/geofence')}
             />
+             <MenuItem
+              title={t('reportStops')}
+              link="/stops"
+              icon={<PinDropIcon />}
+              selected={location.pathname.startsWith('/stops')}
+            />
+
             {!features.disableGroups && (
               <MenuItem
                 title={t('settingsGroups')}

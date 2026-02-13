@@ -30,6 +30,7 @@ const MapGeofenceEdit = ({ selectedGeofenceId }) => {
       polygon: true,
       line_string: true,
       trash: true,
+      
     },
     userProperties: true,
     styles: [...drawTheme, {

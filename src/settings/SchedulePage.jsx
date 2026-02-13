@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import TextField from '@mui/material/TextField';
 import {
@@ -13,6 +13,7 @@ import {
   MenuItem,
   FormControlLabel,
   Checkbox,
+  Chip,Box,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EditItemView from './components/EditItemView';
@@ -20,15 +21,17 @@ import { useTranslation } from '../common/components/LocalizationProvider';
 import SettingsMenu from './components/SettingsMenu';
 import { prefixString } from '../common/util/stringUtils';
 import { schedulesActions } from '../store';
-import { useCatch } from '../reactHelper';
+import { useCatch,useCatchCallback } from '../reactHelper';
 import useSettingsStyles from './common/useSettingsStyles';
 import fetchOrThrow from '../common/util/fetchOrThrow';
+import{useEffect} from 'react';
+
 
 const SchedulePage = () => {
   const { classes } = useSettingsStyles();
   const dispatch = useDispatch();
   const t = useTranslation();
-  const gmtOffsetMinutes = 330;
+  // const gmtOffsetMinutes = 330;
 
   const [item, setItem] = useState();
   const geofences = useSelector((state) => state.geofences.items);
@@ -36,18 +39,75 @@ const SchedulePage = () => {
   const [uiDate, setUiDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [uiStartTime, setUiStartTime] = useState("00:00");
   const [uiEndTime, setUiEndTime] = useState('00:00');
+  const[routeStops,setRouteStops] = useState([]);
 
-  const onItemSaved = useCatch(async () => {
+   const routeItems = useMemo(() => {
+  if (!geofences) return [];
+
+  const list = Array.isArray(geofences)
+    ? geofences
+    : Object.values(geofences);
+
+  return list.filter((g) => !g.attributes?.isStop);
+}, [geofences]);
+
+
+   const onItemSaved = useCatch(async () => {
     const response = await fetchOrThrow('/api/schedules');
     dispatch(schedulesActions.refresh(await response.json()));
-  });
+    });
 
-  const validate = () =>
-    item &&
-    item.scheduleName &&
-    item.startTime &&
-    item.geofenceId;
+    const loadStops = useCatchCallback(async (routeId) => {
+    if (!routeId) {
+      setRouteStops([]);
+      return;
+    }
 
+    const response = await fetchOrThrow('/api/stops');
+    const allStops = await response.json();
+    const mappedStops = allStops
+      .map((stop) => ({
+        ...stop,
+        routeGeofenceId: stop.routeGeofenceId ?? stop.attributes?.routeGeofenceId,
+        geofenceIds: stop.geofenceIds ?? stop.attributes?.geofenceIds,
+      }))
+      .filter((stop) => {
+        const directMatch = Number(stop.routeGeofenceId) === Number(routeId);
+        const linkedMatch = Array.isArray(stop.geofenceIds)
+          && stop.geofenceIds.some((id) => Number(id) === Number(routeId));
+
+        return directMatch || linkedMatch;
+      });
+
+    setRouteStops(mappedStops);
+  }, [])
+
+  useEffect(() => {
+    if (!item) {
+      return;
+    }
+     if (item.startTime) {
+      const start = dayjs(item.startTime);
+      const end = item.duration ? start.add(item.duration, 'second') : start;
+      setUiDate(start.format('YYYY-MM-DD'));
+      setUiStartTime(start.format('HH:mm'));
+      setUiEndTime(end.format('HH:mm'));
+    }
+     if (item.attributes?.stopIds && !item.stopIds) {
+      setItem({ ...item, stopIds: item.attributes.stopIds });
+    }
+
+    loadStops(item.geofenceId);
+  }, [item?.id]);
+
+    const validate = () => (
+    item
+    && item.scheduleName
+    && item.startTime
+    && item.geofenceId
+    && Array.isArray(item.stopIds)
+    && item.stopIds.length > 0
+  );
   const buildUtcIso = (date, time) =>
     dayjs(`${date}T${time}`)
      .format('YYYY-MM-DDTHH:mm:ss+05:30');
@@ -58,9 +118,11 @@ const SchedulePage = () => {
   const todayDate = dayjs().format('YYYY-MM-DD');
 
   const recomputeTime = (date, start, end) => {
-  const baseDate =
-    item.recurrence === 'ONCE' ? date : todayDate;
+     if (!item) {
+      return;
+    }
 
+  const baseDate = item.recurrence === 'ONCE' ? date : todayDate;
   const startIso = buildUtcIso(baseDate, start);
   const endIso = buildUtcIso(baseDate, end);
 
@@ -85,6 +147,7 @@ const SchedulePage = () => {
         recurrence: 'DAILY',
         reversed: false,
         waitTime: 0,
+        stopIds: [],
       }}
       validate={validate}
       onItemSaved={onItemSaved}
@@ -135,44 +198,84 @@ const SchedulePage = () => {
 
               {/* START TIME */}
               <TextField
-  type="time"
-  label="Start Time"
-  value={uiStartTime}
-  onChange={(e) => {
-    const value = e.target.value;
-    setUiStartTime(value);
-    recomputeTime(uiDate, value, uiEndTime);
-  }}
-/>
+                type="time"
+                label="Start Time"
+                value={uiStartTime}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setUiStartTime(value);
+                  recomputeTime(uiDate, value, uiEndTime);
+                }}
+              />
 
-<TextField
-  type="time"
-  label="End Time"
-  value={uiEndTime}
-  onChange={(e) => {
-    const value = e.target.value;
-    setUiEndTime(value);
-    recomputeTime(uiDate, uiStartTime, value);
-  }}
-/>
+              <TextField
+                type="time"
+                label="End Time"
+                value={uiEndTime}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setUiEndTime(value);
+                  recomputeTime(uiDate, uiStartTime, value);
+                }}
+              />
 
 
               {/* ROUTE */}
               <FormControl>
-                <InputLabel>Route</InputLabel>
-                <Select
-                  value={item.geofenceId || ''}
-                  onChange={(e) =>
-                    setItem({ ...item, geofenceId: e.target.value })
-                  }
-                >
-                  {Object.values(geofences).map((g) => (
-                    <MenuItem key={g.id} value={g.id}>
-                      {g.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <InputLabel>Route</InputLabel>
+              <Select
+                value={item.geofenceId || ''}
+                label="Route"
+                onChange={async (e) => {
+                  const routeId = e.target.value;
+                  loadStops(routeId);
+                  setItem({
+                    ...item,
+                    geofenceId: routeId,
+                    stopIds: [],
+                    attributes: {
+                      ...item.attributes,
+                      stopIds: [],
+                    },
+                  });
+                }}
+              >
+                {(routeItems||[]).map((route) => (
+                  <MenuItem key={route.id} value={route.id}>{route.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl>
+              <InputLabel>Stops</InputLabel>
+              <Select
+                multiple
+                value={item.stopIds || []}
+                label="Stops"
+                onChange={(e) => {
+                  const stopIds = e.target.value;
+                  setItem({
+                    ...item,
+                    stopIds,
+                    attributes: {
+                      ...item.attributes,
+                      stopIds,
+                    },
+                  });
+                }}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((id) => (
+                      <Chip key={id} label={routeStops.find((stop) => stop.id === id)?.name || id} size="small" />
+                    ))}
+                  </Box>
+                )}
+              >
+                {routeStops.map((stop) => (
+                  <MenuItem key={stop.id} value={stop.id}>{stop.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
               {/* RECURRENCE */}
               <FormControl>
